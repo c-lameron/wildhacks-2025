@@ -1,13 +1,13 @@
 from flask import Blueprint, request, jsonify
 import firebase_admin
-from firebase_admin import credentials, auth
+from firebase_admin import credentials, auth, db
 from models.user import User
 
 auth_bp = Blueprint('auth', __name__, url_prefix='/auth')
 
 # Initialize Firebase Admin SDK with your credentials
-# cred = credentials.Certificate("path/to/your/serviceAccountKey.json")
-# firebase_admin.initialize_app(cred)
+cred = credentials.Certificate("path/to/your/serviceAccountKey.json")
+firebase_admin.initialize_app(cred)
 
 
 @auth_bp.route('/verify_token', methods=['POST'])
@@ -47,3 +47,39 @@ def update_username():
         return jsonify({'message': 'Username updated successfully', 'uid': uid, 'username': username}), 200
     except Exception as e:
         return jsonify({'message': f'Error updating username: {str(e)}'}), 401
+
+@auth_bp.route('/signup', methods=['POST'])
+def signup():
+    data = request.get_json()
+    email = data.get('email')
+    password = data.get('password')
+    username = data.get('username')
+
+    if not email:
+        return jsonify({'message': 'Email is required'}), 400
+
+    if not password:
+        return jsonify({'message': 'Password is required'}), 400
+    
+    if not username:
+        return jsonify({'message': 'Username is required'}), 400
+
+    try:
+        user = auth.create_user(
+            email=email,
+            password=password,
+            display_name=username
+        )
+
+        # Save the user to the Firebase database
+        user_data = {
+            'username': username,
+            'email': email,
+            'points': 0
+        }
+        ref = db.reference(f'/users/{user.uid}')
+        ref.set(user_data)
+
+        return jsonify({'message': 'User created successfully', 'uid': user.uid}), 201
+    except Exception as e:
+        return jsonify({'message': f'Error creating user: {str(e)}'}), 400

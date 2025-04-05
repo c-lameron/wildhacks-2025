@@ -30,9 +30,37 @@ def create_leaderboard():
 
 @leaderboard_bp.route('/get/<leaderboard_id>', methods=['GET'])
 def get_leaderboard(leaderboard_id):
-    # TODO: Implement leaderboard retrieval logic (e.g., fetch from database)
+    try:
+        # Get the leaderboard from the database
+        leaderboard_ref = db.reference(f'/leaderboards/{leaderboard_id}')
+        leaderboard = leaderboard_ref.get()
 
-    return jsonify({'message': 'Leaderboard retrieved successfully'}), 200
+        if not leaderboard:
+            return jsonify({'message': 'Leaderboard not found'}), 404
+
+        # Get the users from the leaderboard
+        users = leaderboard.get('users', [])
+        users_with_points = []
+        for user_id in users:
+            user_ref = db.reference(f'/users/{user_id}')
+            user_data = user_ref.get()
+            if user_data:
+                users_with_points.append({
+                    'user_id': user_id,
+                    'username': user_data.get('username', ''),
+                    'points': user_data.get('points', 0)
+                })
+
+        # Sort the users by points
+        users_with_points.sort(key=lambda x: x['points'], reverse=True)
+
+        return jsonify({'message': 'Leaderboard retrieved successfully', 'leaderboard': {
+            'name': leaderboard.get('name', ''),
+            'reset_date': leaderboard.get('reset_date', ''),
+            'users': users_with_points
+        }}), 200
+    except Exception as e:
+        return jsonify({'message': f'Error getting leaderboard: {str(e)}'}), 500
 
 @leaderboard_bp.route('/join/<leaderboard_id>/<username>', methods=['POST'])
 def join_leaderboard(leaderboard_id, username):
