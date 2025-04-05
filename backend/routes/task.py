@@ -2,7 +2,6 @@ from flask import Blueprint, request, jsonify
 import firebase_admin
 from backend.app import model
 from firebase_admin import credentials, auth, db
-from models.task import Task
 
 task_bp = Blueprint('task', __name__, url_prefix='/task')
 
@@ -57,6 +56,27 @@ def complete_task(task_id):
         new_points = current_points + difficulty
 
         user_ref.update({'points': new_points})
+
+        # Sort the leaderboard
+        leaderboard_ref = db.reference('/leaderboards')
+        leaderboards = leaderboard_ref.get()
+
+        if leaderboards:
+            for leaderboard_id, leaderboard in leaderboards.items():
+                if leaderboard and 'users' in leaderboard:
+                    users = leaderboard.get('users', [])
+                    # Sort the users by points
+                    users_with_points = []
+                    for user_id in users:
+                        user_ref = db.reference(f'/users/{user_id}')
+                        user_data = user_ref.get()
+                        if user_data:
+                            users_with_points.append((user_id, user_data.get('points', 0)))
+
+                    users_with_points.sort(key=lambda x: x[1], reverse=True)
+                    sorted_users = [user_id for user_id, points in users_with_points]
+                    leaderboard_ref = db.reference(f'/leaderboards/{leaderboard_id}')
+                    leaderboard_ref.update({'users': sorted_users})
 
         return jsonify({'message': 'Task completed successfully', 'points_awarded': difficulty, 'new_points': new_points}), 200
     except Exception as e:
