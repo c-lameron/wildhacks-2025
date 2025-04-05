@@ -30,6 +30,34 @@ def add_task():
 
 @task_bp.route('/complete/<task_id>', methods=['POST'])
 def complete_task(task_id):
-    # TODO: Implement task completion logic (e.g., update task status, award points to user)
+    data = request.get_json()
+    user_id = data.get('user_id')
 
-    return jsonify({'message': 'Task completed successfully'}), 200
+    if not user_id:
+        return jsonify({'message': 'User ID is required'}), 400
+
+    try:
+        # Get the task from the database
+        task_ref = db.reference(f'/tasks/{task_id}')
+        task = task_ref.get()
+
+        if not task:
+            return jsonify({'message': 'Task not found'}), 404
+
+        difficulty = task.get('difficulty')
+
+        # Update the user's points in the database
+        user_ref = db.reference(f'/users/{user_id}')
+        user = user_ref.get()
+
+        if not user:
+            return jsonify({'message': 'User not found'}), 404
+
+        current_points = user.get('points', 0)
+        new_points = current_points + difficulty
+
+        user_ref.update({'points': new_points})
+
+        return jsonify({'message': 'Task completed successfully', 'points_awarded': difficulty, 'new_points': new_points}), 200
+    except Exception as e:
+        return jsonify({'message': f'Error completing task: {str(e)}'}), 500

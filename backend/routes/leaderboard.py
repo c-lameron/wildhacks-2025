@@ -9,9 +9,21 @@ def create_leaderboard():
     name = data.get('name')
     reset_date = data.get('reset_date')
 
-    # TODO: Implement leaderboard creation logic (e.g., save to database)
+    if not name:
+        return jsonify({'message': 'Leaderboard name is required'}), 400
 
-    return jsonify({'message': 'Leaderboard created successfully'}), 201
+    try:
+        # Save leaderboard to database
+        ref = db.reference('/leaderboards')
+        new_leaderboard_ref = ref.push({
+            'name': name,
+            'reset_date': reset_date
+        })
+        leaderboard_id = new_leaderboard_ref.key
+
+        return jsonify({'message': 'Leaderboard created successfully', 'leaderboard_id': leaderboard_id}), 201
+    except Exception as e:
+        return jsonify({'message': f'Error creating leaderboard: {str(e)}'}), 500
 
 @leaderboard_bp.route('/get/<leaderboard_id>', methods=['GET'])
 def get_leaderboard(leaderboard_id):
@@ -21,15 +33,37 @@ def get_leaderboard(leaderboard_id):
 
 @leaderboard_bp.route('/join/<leaderboard_id>/<username>', methods=['POST'])
 def join_leaderboard(leaderboard_id, username):
-    # Implement logic to add user to leaderboard (e.g., update database)
-    # Assuming you have a Leaderboard object and a method to add users
-    # Retrieve the leaderboard from the database using the leaderboard_id
-    # leaderboard = Leaderboard.get(leaderboard_id)
-    # if leaderboard:
-    #     leaderboard.add_user(username)
-    #     # Save the updated leaderboard to the database
-    #     # leaderboard.save()
-    #     return jsonify({'message': 'User added to leaderboard successfully'}), 200
-    # else:
-    #     return jsonify({'message': 'Leaderboard not found'}), 404
-    return jsonify({'message': 'User added to leaderboard successfully'}), 200
+    try:
+        # Get the leaderboard from the database
+        leaderboard_ref = db.reference(f'/leaderboards/{leaderboard_id}')
+        leaderboard = leaderboard_ref.get()
+
+        if not leaderboard:
+            return jsonify({'message': 'Leaderboard not found'}), 404
+
+        # Add the user to the leaderboard's users list
+        users = leaderboard.get('users', [])
+        if username not in users:
+            users.append(username)
+            leaderboard_ref.update({'users': users})
+
+        return jsonify({'message': 'User added to leaderboard successfully'}), 200
+    except Exception as e:
+        return jsonify({'message': f'Error adding user to leaderboard: {str(e)}'}), 500
+
+@leaderboard_bp.route('/reset/<leaderboard_id>', methods=['POST'])
+def reset_leaderboard(leaderboard_id):
+    try:
+        # Get the leaderboard from the database
+        leaderboard_ref = db.reference(f'/leaderboards/{leaderboard_id}')
+        leaderboard = leaderboard_ref.get()
+
+        if not leaderboard:
+            return jsonify({'message': 'Leaderboard not found'}), 404
+
+        # Reset the users list
+        leaderboard_ref.update({'users': []})
+
+        return jsonify({'message': 'Leaderboard reset successfully'}), 200
+    except Exception as e:
+        return jsonify({'message': f'Error resetting leaderboard: {str(e)}'}), 500
