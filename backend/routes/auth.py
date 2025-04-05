@@ -5,36 +5,45 @@ from models.user import User
 
 auth_bp = Blueprint('auth', __name__, url_prefix='/auth')
 
-# TODO: Initialize Firebase Admin SDK with your credentials
+# Initialize Firebase Admin SDK with your credentials
 # cred = credentials.Certificate("path/to/your/serviceAccountKey.json")
 # firebase_admin.initialize_app(cred)
 
-@auth_bp.route('/register', methods=['POST'])
-def register():
+
+@auth_bp.route('/verify_token', methods=['POST'])
+def verify_token():
     data = request.get_json()
-    email = data.get('email')
-    password = data.get('password')
+    id_token = data.get('id_token')
+
+    if not id_token:
+        return jsonify({'message': 'ID token is required'}), 400
 
     try:
-        user = auth.create_user(
-            email=email,
-            password=password
-        )
-        return jsonify({'message': 'User registered successfully', 'uid': user.uid}), 201
+        decoded_token = auth.verify_id_token(id_token)
+        uid = decoded_token['uid']
+        return jsonify({'message': 'ID token is valid', 'uid': uid}), 200
     except Exception as e:
-        return jsonify({'message': f'Error registering user: {str(e)}'}), 400
+        return jsonify({'message': f'Invalid ID token: {str(e)}'}), 401
 
-@auth_bp.route('/login', methods=['POST'])
-def login():
+@auth_bp.route('/update_username', methods=['POST'])
+def update_username():
     data = request.get_json()
-    email = data.get('email')
-    password = data.get('password')
+    id_token = data.get('id_token')
+    username = data.get('username')
+
+    if not id_token:
+        return jsonify({'message': 'ID token is required'}), 400
+
+    if not username:
+        return jsonify({'message': 'Username is required'}), 400
 
     try:
-        user = auth.get_user_by_email(email)
-        # TODO: Implement password verification (Firebase doesn't directly support password verification)
-        # You might need to store a hash of the password in Firebase and verify it here
+        decoded_token = auth.verify_id_token(id_token)
+        uid = decoded_token['uid']
 
-        return jsonify({'message': 'User logged in successfully', 'uid': user.uid}), 200
+        # Update the username in the Firebase database
+        user = auth.update_user(uid, display_name=username)
+
+        return jsonify({'message': 'Username updated successfully', 'uid': uid, 'username': username}), 200
     except Exception as e:
-        return jsonify({'message': f'Error logging in: {str(e)}'}), 401
+        return jsonify({'message': f'Error updating username: {str(e)}'}), 401
