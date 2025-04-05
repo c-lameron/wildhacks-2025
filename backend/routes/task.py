@@ -1,20 +1,10 @@
 from flask import Blueprint, request, jsonify
 import firebase_admin
+from backend.app import model
 from firebase_admin import credentials, auth, db
 from models.task import Task
-import google.generativeai as genai
 
 task_bp = Blueprint('task', __name__, url_prefix='/task')
-
-# TODO: Initialize Firebase Admin SDK with your credentials
-# cred = credentials.Certificate("path/to/your/serviceAccountKey.json")
-# firebase_admin.initialize_app(cred, {
-#     'databaseURL': 'YOUR_DATABASE_URL'
-# })
-
-# TODO: Configure Gemini AI with your API key
-# genai.configure(api_key="YOUR_API_KEY")
-# model = genai.GenerativeModel('gemini-pro')
 
 @task_bp.route('/add', methods=['POST'])
 def add_task():
@@ -22,12 +12,10 @@ def add_task():
     title = data.get('title')
     description = data.get('description')
 
-    # TODO: Integrate with Gemini AI to get difficulty rating
-    # prompt = f"Rate the difficulty of this task on a scale of 1 to 5: {description}"
-    # response = model.generate_content(prompt)
-    # difficulty = int(response.text)  # Difficulty must be a whole number
-
-    difficulty = 3  # Placeholder difficulty
+    # Integrate with Gemini AI to get difficulty rating
+    prompt = f"Rate the difficulty of this task on a scale of 1 to 5: {description}"
+    response = model.generate_content(prompt)
+    difficulty = int(response.text)  # Difficulty must be a whole number
 
     # Save task to database
     ref = db.reference('/tasks')

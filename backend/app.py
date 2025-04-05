@@ -5,6 +5,11 @@ from routes.leaderboard import leaderboard_bp  # Import the leaderboard blueprin
 
 app = Flask(__name__)
 
+# Configure Gemini AI
+gemini_api_key = "AIzaSyBLg8lFO_TW4MWuXoKAJihcQVFxSYgZbQQ"  # Replace with your actual API key
+genai.configure(api_key=gemini_api_key)
+model = genai.GenerativeModel('gemini-pro')
+
 app.register_blueprint(auth_bp)
 app.register_blueprint(task_bp)
 app.register_blueprint(leaderboard_bp)  # Register the leaderboard blueprint
