@@ -1,1 +1,0 @@
-export { LeaderboardFrame } from "./LeaderboardFrame";
