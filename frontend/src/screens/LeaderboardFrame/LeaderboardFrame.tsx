@@ -8,7 +8,7 @@ import {
 } from "../../components/ui/card";
 import * as Dialog from "@radix-ui/react-dialog";
 import * as Toast from "@radix-ui/react-toast";
-import { FaStar } from "react-icons/fa";
+import { FaStar, FaEdit } from "react-icons/fa";
 
 interface Task {
   id: number;
@@ -38,9 +38,14 @@ export const LeaderboardFrame = (): JSX.Element => {
   const [authMode, setAuthMode] = useState<'login' | 'signup'>('login');
   const [user, setUser] = useState<User | null>(null);
   const [showNewTaskModal, setShowNewTaskModal] = useState(false);
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
   
   const taskInputRef = useRef<HTMLInputElement>(null);
   const leaderboardInputRef = useRef<HTMLInputElement>(null);
+  const editTaskInputRef = useRef<HTMLInputElement>(null);
+  const emailInputRef = useRef<HTMLInputElement>(null);
+  const passwordInputRef = useRef<HTMLInputElement>(null);
+  const usernameInputRef = useRef<HTMLInputElement>(null);
 
   const handleNewTask = (e: React.KeyboardEvent | React.MouseEvent) => {
     if ('key' in e && e.key !== 'Enter') return;
@@ -50,6 +55,20 @@ export const LeaderboardFrame = (): JSX.Element => {
       setTasks([...tasks, { id: Date.now(), name: taskName, difficulty: 0 }]);
       taskInputRef.current.value = '';
       setShowNewTaskModal(false);
+    }
+  };
+
+  const handleEditTask = (e: React.KeyboardEvent | React.MouseEvent) => {
+    if ('key' in e && e.key !== 'Enter') return;
+    
+    const taskName = editTaskInputRef.current?.value;
+    if (taskName && editingTask) {
+      setTasks(tasks.map(task => 
+        task.id === editingTask.id 
+          ? { ...task, name: taskName }
+          : task
+      ));
+      setEditingTask(null);
     }
   };
 
@@ -78,10 +97,18 @@ export const LeaderboardFrame = (): JSX.Element => {
     setTimeout(() => setShowToast(false), 2000);
   };
 
-  const handleAuth = (mode: 'login' | 'signup') => {
-    // Implement actual authentication logic here
-    setIsLoggedIn(true);
-    setShowAuthModal(false);
+  const handleAuth = (e: React.KeyboardEvent | React.MouseEvent) => {
+    if ('key' in e && e.key !== 'Enter') return;
+    
+    const email = emailInputRef.current?.value;
+    const password = passwordInputRef.current?.value;
+    const username = usernameInputRef.current?.value;
+
+    if ((authMode === 'login' && email && password) || 
+        (authMode === 'signup' && email && password && username)) {
+      setIsLoggedIn(true);
+      setShowAuthModal(false);
+    }
   };
 
   const removeTask = (taskId: number) => {
@@ -98,33 +125,33 @@ export const LeaderboardFrame = (): JSX.Element => {
   return (
     <div className="min-h-screen bg-white p-4">
       {/* Header */}
-      <Card className="w-[60%] mx-auto h-16 mb-6 bg-[#efe1a7] rounded-xl shadow-[-12px_8px_4px_#00000040]">
-        <CardContent className="flex items-center justify-center h-full">
-          <h1 className="[font-family:'Jaro',Helvetica] text-4xl text-black text-center">
-            COMP(L)ETE
-          </h1>
-        </CardContent>
+      <Card className="w-[40%] mx-auto h-16 mb-6 bg-[#efe1a7] rounded-xl shadow-[-12px_8px_4px_#00000040] flex items-center justify-center">
+        <h1 className="[font-family:'Jaro',Helvetica] text-4xl text-black">
+          COMP(L)ETE
+        </h1>
       </Card>
 
       <div className="flex gap-6">
         {/* Leaderboards Section */}
         <div className="w-1/3">
-          <Card className="bg-[#ffb6c1] rounded-xl shadow-[-12px_8px_4px_#00000040] mb-4 h-[calc(60vh+48px)]">
-            <CardHeader>
+          <Card className="bg-[#ffb6c1] rounded-xl shadow-[-12px_8px_4px_#00000040] mb-4 h-[calc(65vh+48px)] flex flex-col">
+            <CardHeader className="flex-none">
               <CardTitle className="text-3xl [font-family:'Jaro',Helvetica]">
                 LEADERBOARDS
               </CardTitle>
             </CardHeader>
-            <CardContent className="max-h-[60vh] overflow-y-auto">
-              {leaderboards.map((board) => (
-                <Button
-                  key={board.id}
-                  className="w-full mb-2 text-left bg-[#e6e6fa] [font-family:'Jaro',Helvetica] text-black text-xl shadow-[0px_4px_4px_#00000040] hover:bg-[#d8d8f7]"
-                  onClick={() => setSelectedLeaderboard(board)}
-                >
-                  {board.name}
-                </Button>
-              ))}
+            <CardContent className="flex-1 overflow-hidden">
+              <div className="h-full overflow-y-auto pr-2">
+                {leaderboards.map((board) => (
+                  <Button
+                    key={board.id}
+                    className="w-full mb-2 text-left bg-[#e6e6fa] [font-family:'Jaro',Helvetica] text-black text-xl shadow-[0px_4px_4px_#00000040] hover:bg-[#d8d8f7]"
+                    onClick={() => setSelectedLeaderboard(board)}
+                  >
+                    {board.name}
+                  </Button>
+                ))}
+              </div>
             </CardContent>
           </Card>
 
@@ -144,36 +171,47 @@ export const LeaderboardFrame = (): JSX.Element => {
 
         {/* Task Board Section */}
         <div className="w-2/3">
-          <Card className="bg-[#abd1b0] rounded-xl shadow-[-12px_8px_4px_#00000040] mb-4 h-[calc(60vh+48px)]">
-            <CardHeader>
+          <Card className="bg-[#abd1b0] rounded-xl shadow-[-12px_8px_4px_#00000040] mb-4 h-[calc(65vh+48px)] flex flex-col">
+            <CardHeader className="flex-none">
               <CardTitle className="text-3xl [font-family:'Jaro',Helvetica]">
                 TASK BOARD
               </CardTitle>
             </CardHeader>
-            <CardContent className="h-[60vh] overflow-y-auto">
-              <div className="grid grid-cols-4 gap-4">
-                {tasks.map((task) => (
-                  <div
-                    id={`task-${task.id}`}
-                    key={task.id}
-                    className="transform transition-all duration-300 cursor-pointer"
-                    onClick={() => removeTask(task.id)}
-                  >
-                    <Card className="bg-[#90EE90] p-3 rotate-1 hover:rotate-3 transition-transform duration-200 min-h-[120px] relative shadow-lg border-t-8 border-[#7FDB7F]">
-                      <div className="absolute -top-2 left-1/2 transform -translate-x-1/2 w-6 h-2 bg-gray-400 rounded-sm"></div>
-                      <span className="text-black [font-family:'Jaro',Helvetica] text-md block mb-2">{task.name}</span>
-                      <div className="flex gap-1 mt-2">
-                        {[...Array(5)].map((_, index) => (
-                          <FaStar
-                            key={index}
-                            className={index < task.difficulty ? "text-yellow-500" : "text-gray-300"}
-                            size={16}
-                          />
-                        ))}
-                      </div>
-                    </Card>
-                  </div>
-                ))}
+            <CardContent className="flex-1 overflow-hidden">
+              <div className="h-full overflow-y-auto pr-2">
+                <div className="grid grid-cols-4 gap-4">
+                  {tasks.map((task) => (
+                    <div
+                      id={`task-${task.id}`}
+                      key={task.id}
+                      className="transform transition-all duration-300 cursor-pointer group"
+                      onClick={() => removeTask(task.id)}
+                    >
+                      <Card className="bg-[#228B22] p-3 rotate-1 hover:rotate-3 transition-transform duration-200 min-h-[120px] relative shadow-lg border-t-8 border-[#006400]">
+                        <div className="absolute -top-2 left-1/2 transform -translate-x-1/2 w-6 h-2 bg-gray-400 rounded-sm"></div>
+                        <button
+                          className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setEditingTask(task);
+                          }}
+                        >
+                          <FaEdit className="text-black hover:text-gray-700" />
+                        </button>
+                        <span className="text-black [font-family:'Jaro',Helvetica] text-md block mb-2">{task.name}</span>
+                        <div className="flex gap-1 mt-2">
+                          {[...Array(5)].map((_, index) => (
+                            <FaStar
+                              key={index}
+                              className={index < task.difficulty ? "text-yellow-500" : "text-gray-300"}
+                              size={16}
+                            />
+                          ))}
+                        </div>
+                      </Card>
+                    </div>
+                  ))}
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -190,16 +228,20 @@ export const LeaderboardFrame = (): JSX.Element => {
       {/* Auth Buttons */}
       <div className="absolute top-2 right-4 flex gap-4">
         <Button 
-          className="bg-[#b7b6b6] rounded-[10px] shadow-[-12px_8px_4px_#00000040] h-[26px] [font-family:'Jaro',Helvetica]"
+          className="bg-[#b7b6b6] rounded-[10px] h-[26px] [font-family:'Jaro',Helvetica]"
           onClick={() => {
-            setAuthMode('login');
-            setShowAuthModal(true);
+            if (isLoggedIn) {
+              setIsLoggedIn(false);
+            } else {
+              setAuthMode('login');
+              setShowAuthModal(true);
+            }
           }}
         >
-          LOG IN/OUT
+          {isLoggedIn ? 'LOG OUT' : 'LOG IN'}
         </Button>
         <Button 
-          className="bg-transparent text-black h-[26px] p-0 [font-family:'Jaro',Helvetica]"
+          className="bg-[#b7b6b6] rounded-[10px] h-[26px] [font-family:'Jaro',Helvetica]"
           onClick={() => {
             setAuthMode('signup');
             setShowAuthModal(true);
@@ -265,22 +307,28 @@ export const LeaderboardFrame = (): JSX.Element => {
             </Dialog.Title>
             {authMode === 'signup' && (
               <input
+                ref={usernameInputRef}
                 className="w-full p-2 border rounded mb-4"
                 placeholder="Username"
                 type="text"
+                onKeyDown={handleAuth}
               />
             )}
             <input
+              ref={emailInputRef}
               className="w-full p-2 border rounded mb-4"
               placeholder="Email"
               type="email"
+              onKeyDown={handleAuth}
             />
             <input
+              ref={passwordInputRef}
               className="w-full p-2 border rounded mb-4"
               placeholder="Password"
               type="password"
+              onKeyDown={handleAuth}
             />
-            <Button onClick={() => handleAuth(authMode)} className="w-full [font-family:'Jaro',Helvetica] mb-4">
+            <Button onClick={handleAuth} className="w-full [font-family:'Jaro',Helvetica] mb-4">
               {authMode === 'login' ? 'Log In' : 'Sign Up'}
             </Button>
             {authMode === 'login' && (
@@ -309,6 +357,24 @@ export const LeaderboardFrame = (): JSX.Element => {
               onKeyDown={handleNewTask}
             />
             <Button onClick={handleNewTask} className="w-full [font-family:'Jaro',Helvetica]">Create Task</Button>
+          </Dialog.Content>
+        </Dialog.Portal>
+      </Dialog.Root>
+
+      {/* Edit Task Modal */}
+      <Dialog.Root open={!!editingTask} onOpenChange={() => setEditingTask(null)}>
+        <Dialog.Portal>
+          <Dialog.Overlay className="fixed inset-0 bg-black/50" />
+          <Dialog.Content className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white p-6 rounded-xl w-[400px]">
+            <Dialog.Title className="text-2xl mb-4 [font-family:'Jaro',Helvetica]">Edit Task</Dialog.Title>
+            <input
+              ref={editTaskInputRef}
+              className="w-full p-2 border rounded mb-4"
+              placeholder="Task Name"
+              defaultValue={editingTask?.name}
+              onKeyDown={handleEditTask}
+            />
+            <Button onClick={handleEditTask} className="w-full [font-family:'Jaro',Helvetica]">Save Changes</Button>
           </Dialog.Content>
         </Dialog.Portal>
       </Dialog.Root>
